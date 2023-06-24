@@ -1,0 +1,68 @@
+#!/bin/sh
+VIRTUAL_MACHINE=q0002283.sdst.sbaintern.de
+NEXUS_BAPC=registry-bapc.idst.ibaintern.de
+ZOOKEEPER_PORT=2181
+KAFKA_PORT=9092
+KAFDROP_PORT=9000
+echo
+echo
+echo
+echo
+echo
+echo
+echo -------------------------------------------------------
+echo -- Starting Kafka, Zookeeper and KafDrop with Docker --
+echo -------------------------------------------------------
+echo
+echo -------------------------------------------------------
+echo -- Pull Zookeeper [Kafka Broker] from $NEXUS --
+echo -------------------------------------------------------
+docker pull $NEXUS_BAPC/public/ocp-3rd/bitnami/zookeeper:3.8
+echo
+echo
+echo
+echo -------------------------------------------------------
+echo -- Pull Kafka from $NEXUS --
+echo -------------------------------------------------------
+docker pull $NEXUS_BAPC/public/ocp-3rd/bitnami/kafka:3.1
+echo
+echo
+echo
+echo -------------------------------------------------------
+echo -- Pull KafDrop [WebUI] from $NEXUS_THIRD_PARTY --
+echo -------------------------------------------------------
+docker pull $NEXUS_BAPC/public/icp-3rd/docker.io/obsidiandynamics/kafdrop:3.30.0
+echo
+echo
+echo
+echo -------------------------------------------------------
+echo -- Start Zookeeper on port $ZOOKEEPER_PORT:$ZOOKEEPER_PORT --
+echo -------------------------------------------------------
+docker run -d --env ALLOW_ANONYMOUS_LOGIN=yes -p $ZOOKEEPER_PORT:$ZOOKEEPER_PORT $NEXUS_BAPC/public/ocp-3rd/bitnami/zookeeper:3.8
+echo
+echo Zookeeper started at $VIRTUAL_MACHINE:$ZOOKEEPER_PORT
+echo
+echo
+echo
+echo -------------------------------------------------------
+echo -- Start Kafka on port $KAFKA_PORT:$KAFKA_PORT --
+echo -------------------------------------------------------
+docker run -d --env KAFKA_MESSAGE_MAX_BYTES=10000000 --env KAFKA_BROKER_ID=1 --env KAFKA_CFG_LISTENERS=PLAINTEXT://:$KAFKA_PORT --env KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://$VIRTUAL_MACHINE:$KAFKA_PORT --env KAFKA_CFG_ZOOKEEPER_CONNECT=$VIRTUAL_MACHINE:$ZOOKEEPER_PORT --env ALLOW_PLAINTEXT_LISTENER=yes --env KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true -p $KAFKA_PORT:$KAFKA_PORT $NEXUS_BAPC/public/ocp-3rd/bitnami/kafka:3.1
+echo
+echo Kafka started at $VIRTUAL_MACHINE:KAFKA_PORT
+echo
+echo
+echo
+echo -------------------------------------------------------
+echo -- Start KafDrop at port $KAFDROP_PORT:$KAFDROP_PORT --
+echo -------------------------------------------------------
+docker run -d --env KAFKA_BROKERCONNECT=$VIRTUAL_MACHINE:$KAFKA_PORT --env JVM_OPTS='-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify' -p $KAFDROP_PORT:$KAFDROP_PORT $NEXUS_BAPC/public/icp-3rd/docker.io/obsidiandynamics/kafdrop:3.30.0
+echo
+echo KafDrop started at $VIRTUAL_MACHINE:$KAFDROP_PORT
+echo
+echo -------------------------------------------------------
+echo
+echo Open your browser at http://$VIRTUAL_MACHINE:$KAFDROP_PORT to monitor your Kafka environment
+echo
+echo
+
